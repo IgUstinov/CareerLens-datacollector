@@ -1,0 +1,5 @@
+fastapi[all]
+requests
+kafka[all]
+pymongo[all]
+uvicorn[all]
