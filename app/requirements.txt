@@ -1,5 +1,6 @@
 fastapi[all]
 requests
-kafka[all]
+confluent-kafka[all]
 pymongo[all]
 uvicorn[all]
+blinker
