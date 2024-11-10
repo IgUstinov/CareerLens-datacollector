@@ -1,22 +1,32 @@
-from fastapi import FastAPI, HTTPException
-
-from app.Kafka.KafkaProvider import KafkaProvider
-from app.Provider.DbProvider import DbProvider
-
-
+import asyncio
+from fastapi import FastAPI
 from app.WorkWithSignals import WorkWithSignals
+import logging
 
-app = FastAPI()
-wws = WorkWithSignals().setSignals()
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
 
-@app.get("/notify/producer")
-def request_and_add_to_mongodb():
-    for i in range(1,5):
-        KafkaProvider.produce_kafka("hello from python","python")
 
-# Эндпоинт для получения всех данных из MongoDB
-@app.get("/get_items")
-def get_items():
-    data = DbProvider().get_NoFilerRepo().get_data()
-    return {"Count": len(data), "items": data }
+async def lifespan(app: FastAPI):
+    logging.info("Инициализация первых компонентов")
 
+    wws = WorkWithSignals(base_url="https://api.hh.ru")
+    loop = asyncio.get_event_loop()
+
+    task = loop.create_task(wws.start())
+
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+# Простой эндпоинт для проверки работы сервиса
+@app.get("/")
+async def root():
+    return {"message": "FastAPI сервис работает!"}

@@ -1,6 +1,6 @@
-fastapi[all]
 requests
-confluent-kafka[all]
 pymongo[all]
-uvicorn[all]
-blinker
+aiohttp
+fastapi
+uvicorn
+aiokafka

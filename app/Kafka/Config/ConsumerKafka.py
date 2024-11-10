@@ -1,44 +1,31 @@
-import json
-import threading
+import logging
+from aiokafka import AIOKafkaConsumer
+from app.CollectData.DataCollector import DataCollector
+from app.Provider.DbProvider import DbProvider
 
-from confluent_kafka import Consumer, KafkaException
-from blinker import signal
+logging.basicConfig(level=logging.INFO)
 
 
 class ConsumerKafka:
-    __consumer_conf = {
-        'bootstrap.servers': 'kafka:9092',
-        'group.id': 'python',
-        'auto.offset.reset': 'earliest',
-    }
+    def __init__(self, dbProvider: DbProvider, collector: DataCollector):
+        self.consumer = AIOKafkaConsumer(
+            "Backend",
+            bootstrap_servers="kafka:9092",
+            group_id="fastapi-group",
+            auto_offset_reset="earliest"
+        )
+        self.dbProvider = dbProvider
+        self.collector = collector
 
-    def __init__(self):
-        pass
-
-    def start(self, topic: str, signaler: signal):
-        consumer = self.get_consumer()
-        consumer.subscribe([topic])
-        consumer_thread = threading.Thread(target=self.start_consume_messages, args=(consumer, signaler))
-        consumer_thread.start()
-
-    def get_consumer(self):
-        consumer = Consumer(self.__consumer_conf)
-        return consumer
-
-    def start_consume_messages(self, consumer, signaler: signal):
+    async def start(self, topic: str):
+        logging.info("Start consume")
+        await self.consumer.start()
         try:
-            while True:
-                msg = consumer.poll(timeout=1.0)  # ожидание сообщения
-                if msg is None:  # если сообщений нет
-                    continue
-                if msg.error():  # обработка ошибок
-                    raise KafkaException(msg.error())
-                else:
-                    # действия с полученным сообщением
-                    message = json.loads(msg.value())
-                    signaler.send(message)
-                    print(f"Received message: {message}")
-        except KeyboardInterrupt:
-            pass
+            async for msg in self.consumer:  # Цикл ожидания и обработки сообщений
+                logging.info(f"Получено сообщение: {msg.value.decode()}")
+                yield msg  # Возвращаем сообщение, позволяя продолжить чтение
+        except Exception as ex:
+            logging.error(f"Ошибка в цикле потребления: {ex}")
         finally:
-            consumer.close()  # не забываем закрыть соединение
+            await self.consumer.stop()
+
