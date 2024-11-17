@@ -23,5 +23,4 @@ class FilterRepository(MongoDBSecret):
         logging.info(mongo_filter)
         filtered_data = list(NoFileredCollection.find(mongo_filter))
         logging.info(filtered_data)
-        pass
         return filtered_data

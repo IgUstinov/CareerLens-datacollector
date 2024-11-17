@@ -43,7 +43,6 @@ class NoFilterRepository(MongoDBSecret):
         result = self.db["countries"].insert_many(data)
         insertedIds = result.inserted_ids
         ids = []
-
         for item in insertedIds:
             ids.append(str(item))
         logging.info(ids)
